@@ -4,16 +4,21 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from app.config.config import get_credentials,get_visual_labels,get_dashboard_url,get_filter_config
 import time
+import threading
 
 # Global list to store per-user results
 user_results = []
+
 
 def measure_load_time(wait, label):
     start = time.time()
     wait.until(EC.presence_of_element_located(
         (By.XPATH, f"//div[normalize-space(@aria-label)='{label}']")))
     return time.time() - start
+
+
 
 def measure_filter_apply_and_clear_time(wait, filter_label, filter_value):
     # Apply filter:
@@ -64,25 +69,21 @@ class SingleRunSeleniumUser(User):
         chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 30)
-        self.email = "priyank@innovationalofficesolution.com"
-        self.password = "MagicGriD@9876"
-        self.dashboard_url = (
-            "https://app.powerbi.com/reportEmbed?reportId=72864037-20c2-4704-a490-f0d4502ec34c"
-            "&autoAuth=true&ctid=99fa199d-2653-4e16-bd65-17cc244b425e"
-        )
+        self.email, self.password = get_credentials()
+        self.dashboard_url = get_dashboard_url()
         self.has_run = False
         self.result = None
         print("[User] on_start completed.")
 
     @task(10)
     def run_once(self):
-        # Guard to run only once
         if self.has_run:
             return
         self.has_run = True
         start_time = time.time()
         driver = self.driver
         wait = self.wait
+        result = {}
         try:
             print("[User] Starting login process...")
             driver.get("https://app.powerbi.com")
@@ -98,31 +99,55 @@ class SingleRunSeleniumUser(User):
             print("[User] Login successful.")
 
             print("[User] Loading dashboard...")
-            driver.get(self.dashboard_url)
+            print(self.dashboard_url)
             dash_start = time.time()
-            wait.until(EC.presence_of_element_located(
+            driver.get(self.dashboard_url)
+            wait.until(EC.visibility_of_element_located(
                 (By.XPATH, '//*[@id="pvExplorationHost"]/div/div/exploration/div/explore-canvas/div/div[2]/div/div[2]/div[2]')
             ))
             dashboard_load_time = time.time() - dash_start
             print(f"[User] Dashboard loaded in {dashboard_load_time:.2f} seconds.")
 
-            print("[User] Measuring visual load times...")
-            visual1 = measure_load_time(wait, "Accuracy of Service Delivery")
-            visual2 = measure_load_time(wait, "Call Resolved/ Call UnResolved by Day")
+            # Measure visuals concurrently
+            print("[User] Measuring visual load times concurrently...")
 
-            print("[User] Applying and clearing filter...")
-            filter_time = measure_filter_apply_and_clear_time(wait, "Request Type", "Special Request")
+            labels = get_visual_labels()
+            if not labels:
+                labels = ["Accuracy of Service Delivery", "Call Resolved/ Call UnResolved by Day"]
+            visual_results = [None] * len(labels)
+            def measure_visual(index, label):
+                visual_results[index] = measure_load_time(wait, label)
+            threads = []
+            for i, label in enumerate(labels):
+                t = threading.Thread(target=measure_visual, args=(i, label))
+                threads.append(t)
+                t.start()
+            for t in threads:
+                t.join()
+            visual_dict = dict(zip(labels, visual_results))
+            print("[User] Visual load times:", visual_dict)
+
+            # Measure each filter configuration sequentially
+            print("[User] Measuring filter apply times for each filter configuration...")
+
+            filter_configs = get_filter_config()
+            if not filter_configs:
+                filter_configs = [{"label": "Request Type", "value": "Special Request"}]
+            filter_times = {}
+            for fc in filter_configs:
+                ft = measure_filter_apply_and_clear_time(wait, fc["label"], fc["value"])
+                filter_times[fc["label"]] = ft
+            print("[User] Filter times:", filter_times)
+
             total_time = time.time() - start_time
-            self.result = {
+            result = {
                 "dashboard_load_time": dashboard_load_time,
-                "visual_load_times": {
-                    "Accuracy of Service Delivery": visual1,
-                    "Call Resolved/ Call UnResolved by Day": visual2,
-                },
-                "filter_apply_time": filter_time,
+                "visual_load_times": visual_dict,
+                "filter_apply_times": filter_times,
                 "total_time": total_time,
                 "error": None
             }
+            self.result = result
             print(f"[User] Test completed in {total_time:.2f} seconds.")
             try:
                 if hasattr(events, "request_success"):
@@ -136,13 +161,14 @@ class SingleRunSeleniumUser(User):
                 print("[User] Error firing request_success event:", e)
         except Exception as e:
             total_time = time.time() - start_time
-            self.result = {
+            result = {
                 "dashboard_load_time": None,
                 "visual_load_times": {},
-                "filter_apply_time": None,
+                "filter_apply_times": {},
                 "total_time": total_time,
                 "error": str(e)
             }
+            self.result = result
             print("[User] Exception during test:", e)
             try:
                 if hasattr(events, "request_failure"):
@@ -155,13 +181,15 @@ class SingleRunSeleniumUser(User):
                     )
             except Exception:
                 print("[User] events.request_failure not available")
-
+        finally:
+            self.driver.quit()
         if self.result is not None:
-            print("[User] Appending result:", self.result)
-            # Append result only once
             from app.automation.locustfile import user_results
             user_results.append(self.result)
-        # Do not raise StopUser so that the user remains active (or it can idle)
+            print("[User] Result appended:", self.result)
+        # End user execution (prevent further tasks)
+        raise Exception("User test completed.")
+
     
     @task(1)
     def idle(self):

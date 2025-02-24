@@ -3,6 +3,8 @@ from app.api.config.config import config_router
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.automation.locust_runner import run_locust_test
+from app.schemas.schema import Credentials,TestParameters
+from app.config.config import set_credentials,set_dashboard_url,set_filter_config,set_visual_labels
 import threading
 
 app = FastAPI(title="Load Testing Tool", version="1.0")
@@ -26,14 +28,27 @@ def root():
 
 
 
-class TestParameters(BaseModel):
-    users: int = 10
-    spawn_rate: int = 1
-    run_time: int = 60 
+
+
+@app.post("/set_credentials")
+def set_creds(cred: Credentials):
+    set_credentials(cred.email, cred.password)
+    return {"message": "Credentials set successfully"}
+
+
 
 
 @app.post("/run_test")
 def run_test(params: TestParameters):
+    
+    
+    if params.dashboard_url:
+        set_dashboard_url(params.dashboard_url)
+    if params.visuals:
+        set_visual_labels(params.visuals)
+    if params.filters:
+        set_filter_config([f.dict() for f in params.filters])
+        
     results = {}
 
     def target():
