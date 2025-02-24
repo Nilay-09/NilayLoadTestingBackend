@@ -42,7 +42,7 @@ def run_test(params: TestParameters):
     
     test_thread = threading.Thread(target=target)
     test_thread.start()
-    test_thread.join()  # Wait for the test to complete
+    test_thread.join()
     
     if results:
         return results

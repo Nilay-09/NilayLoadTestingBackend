@@ -61,7 +61,7 @@ class SingleRunSeleniumUser(User):
     def on_start(self):
         chrome_options = Options()
         chrome_options.add_argument("--start-maximized")
-        chrome_options.add_argument("--headless")  # Headless mode for performance
+        chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 30)
         self.email = "priyank@innovationalofficesolution.com"
@@ -155,7 +155,7 @@ class SingleRunSeleniumUser(User):
                     )
             except Exception:
                 print("[User] events.request_failure not available")
-        # Append result immediately (instead of waiting for on_stop)
+
         if self.result is not None:
             print("[User] Appending result:", self.result)
             # Append result only once
