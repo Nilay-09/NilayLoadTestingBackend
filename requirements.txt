@@ -2,3 +2,7 @@ fastapi
 uvicorn
 psutil
 starlette
+gevent
+locust
+selenium
+dotenv

@@ -1,10 +1,11 @@
 from fastapi import FastAPI,HTTPException
 from app.api.config.config import config_router
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+
 from app.automation.locust_runner import run_locust_test
 from app.schemas.schema import Credentials,TestParameters
 from app.config.config import set_credentials,set_dashboard_url,set_filter_config,set_visual_labels
+from app.config.powerbi_config import get_access_token
 import threading
 
 app = FastAPI(title="Load Testing Tool", version="1.0")
@@ -36,6 +37,13 @@ def set_creds(cred: Credentials):
     return {"message": "Credentials set successfully"}
 
 
+
+@app.get("/get-access-token")
+def get_token():
+    token = get_access_token(["Chat.ReadWrite", "User.Read"])
+    if token is None:
+        raise HTTPException(status_code=500, detail="Failed to obtain access token")
+    return {"access_token": token}
 
 
 @app.post("/run_test")

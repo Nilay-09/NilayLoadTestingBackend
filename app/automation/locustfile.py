@@ -1,4 +1,5 @@
 from locust import User, task, between, events
+from locust.exception import StopUser
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
@@ -188,7 +189,7 @@ class SingleRunSeleniumUser(User):
             user_results.append(self.result)
             print("[User] Result appended:", self.result)
         # End user execution (prevent further tasks)
-        raise Exception("User test completed.")
+        raise StopUser()
 
     
     @task(1)
