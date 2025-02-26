@@ -4,10 +4,11 @@ import requests
 from dotenv import load_dotenv
 from urllib.parse import urlencode
 
-
-logging.basicConfig(level=logging.INFO, format="%(message)s")
+# Configure logging with timestamps
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+# Load environment variables from .env file
 load_dotenv()
 
 config = {
@@ -18,7 +19,7 @@ config = {
     "password": os.getenv("PASSWORD"),
     "authority": os.getenv("AUTHORITY"),
     "user_scopes": ["Chat.ReadWrite", "User.Read"],
-    "power_bi_scopes": os.getenv("POWER_BI_SCOPES", "").split(),
+    "power_bi_scopes": os.getenv("POWER_BI_SCOPES", "").split(), 
     "sendgrid_api_key": os.getenv("SENDGRID_API_KEY"),
 }
 
@@ -55,7 +56,8 @@ def get_access_token(scopes):
         return None
 
 if __name__ == "__main__":
-    token = get_access_token(["Chat.ReadWrite", "User.Read"])
+
+    token = get_access_token(config["power_bi_scopes"])
     if token:
         logger.info(f"Access Token: {token}")
     else:
