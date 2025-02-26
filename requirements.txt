@@ -6,3 +6,4 @@ gevent
 locust
 selenium
 dotenv
+pdfkit

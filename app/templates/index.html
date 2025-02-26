@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        .cover-page {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #000;
+            width: 80%;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .cover-page h1, .cover-page h2 {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .logo {
+            width: 180px;
+            height: auto;
+            margin-bottom: 30px;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        .section {
+            margin: 20px;
+        }
+
+        .section h2 {
+            margin: 0;
+            padding: 0;
+            background-color: #b3c8d1;
+        }
+
+        .general-details p {
+            margin: 5px 0;
+            display: flex;
+        }
+
+        .general-details p b {
+            min-width: 150px; 
+        }
+
+        .general-details p span {
+            margin-left: 10px; 
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table, th, td {
+            border: 1px solid #000;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #f2f2f2;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f4f4f4;
+        }
+
+        th {
+            background-color: #92b7c6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cover Page -->
+    <div class="cover-page">
+        <img src="../static/White_Bg.png" alt="Office Solution Logo" class="logo">
+        <h1>Office Solution</h1>
+        <h2>Report Name- Transaction</h2>
+    </div>
+    <div class="page-break"></div>
+
+    <!-- General Details Section -->
+    <div class="section">
+        <h2>General Details</h2>
+        <hr>
+        <div class="general-details">
+            <p><b>Scenario Name:</b> <span>{{scenario_name}}</span></p>
+            <p><b>Run Name:</b> <span>{{ run_name }}</span></p>
+            <p><b>Run Date:</b> <span>{{ run_date }}</span></p>
+            <p><b>Period:</b> <span>{{ period }}</span></p>
+            <p><b>Run Duration:</b> <span>{{ run_duration }}</span></p>
+            <p><b>PC Project Name:</b> <span>{{ pc_project_name }}</span></p>
+        </div>
+    </div>
+
+    <!-- Transaction Summary Section -->
+    <div class="section">
+        <h2>Transaction Summary</h2>
+        <hr>
+        <table>
+            <thead>
+                <tr>
+                    <th>Transaction Name</th>
+                    <th>Minimum</th>
+                    <th>Average</th>
+                    <th>Maximum</th>
+                    <th>Std. Deviation</th>
+                    <th>90%</th>
+                    <th>Pass Count</th>
+                    <th>Fail Count</th>
+                    <th>Stop Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.name }}</td>
+                    <td>{{ "%.3f"|format(transaction.minimum) }}</td>
+                    <td>{{ "%.3f"|format(transaction.average) }}</td>
+                    <td>{{ "%.3f"|format(transaction.maximum) }}</td>
+                    <td>{{ "%.3f"|format(transaction.std_deviation) }}</td>
+                    <td>{{ "%.3f"|format(transaction.percentile_90) }}</td>
+                    <td>{{ transaction.pass_count }}</td>
+                    <td>{{ transaction.fail_count }}</td>
+                    <td>{{ transaction.stop_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Report URL Section -->
+    <div class="section">
+        <h2>Report URL</h2>
+        <hr>
+        <p class="report-url">{{ report_url }}</p>
+    </div>
+</body>
+</html>
